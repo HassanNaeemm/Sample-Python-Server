@@ -2,7 +2,13 @@
 import streamlit as st
 from google import genai
 
-API_KEY = "AQ.Ab8RN6ILTBYzkJqGnQQ4tjnDJ6CvsP46t0oK7aXCcbDr25Y70g"
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env
+load_dotenv()
+
+API_KEY =  os.getenv("GEMINI_API_KEY")
 MODEL = "gemini-3.5-flash"
 
 st.set_page_config(
