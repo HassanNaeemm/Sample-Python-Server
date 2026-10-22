@@ -17,7 +17,7 @@ st.caption("Chat with your AI assistant")
 # -----------------------------
 # API Configuration
 # -----------------------------
-MODEL = "llama-3.3-70b-versatile"
+MODEL = "openai/gpt-oss-20b"
 
 try:
     API_KEY = st.secrets["GROQ_API_KEY"]
