@@ -1,44 +1,59 @@
 
 import streamlit as st
-from google import genai
+from groq import Groq
 
-from dotenv import load_dotenv
-import os
-
-# Load environment variables from .env
-load_dotenv()
-
-API_KEY =  os.getenv("GEMINI_API_KEY")
-MODEL = "gemini-3.5-flash"
-
+# -----------------------------
+# Page Configuration
+# -----------------------------
 st.set_page_config(
-    page_title="Gemini AI Chatbot",
-    page_icon="🤖"
+    page_title="Groq AI Chatbot",
+    page_icon="🤖",
+    layout="centered"
 )
 
-st.title("🤖 Gemini AI Chatbot")
+st.title("🤖 Groq AI Chatbot")
 st.caption("Chat with your AI assistant")
 
-# Initialize the client once per session
-if "client" not in st.session_state:
-    st.session_state.client = genai.Client(api_key=API_KEY)
+# -----------------------------
+# API Configuration
+# -----------------------------
+MODEL = "llama-3.3-70b-versatile"
 
-# Initialize chat history and Gemini chat
+try:
+    API_KEY = st.secrets["GROQ_API_KEY"]
+except Exception:
+    st.error(
+        "Groq API key not found. "
+        "Please add GROQ_API_KEY in Streamlit Cloud Secrets."
+    )
+    st.stop()
+
+# -----------------------------
+# Initialize Groq Client
+# -----------------------------
+if "client" not in st.session_state:
+    st.session_state.client = Groq(api_key=API_KEY)
+
+# -----------------------------
+# Initialize Chat History
+# -----------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "chat" not in st.session_state:
-    st.session_state.chat = st.session_state.client.chats.create(
-        model=MODEL
-    )
-
-# Display conversation
+# -----------------------------
+# Display Previous Messages
+# -----------------------------
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# User input
-if prompt := st.chat_input("Type your message..."):
+# -----------------------------
+# User Input
+# -----------------------------
+prompt = st.chat_input("Type your message...")
+
+if prompt:
+    # Display user message
     st.session_state.messages.append(
         {"role": "user", "content": prompt}
     )
@@ -46,14 +61,20 @@ if prompt := st.chat_input("Type your message..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
+    # Generate AI response
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             try:
-                response = st.session_state.chat.send_message(
-                    message=prompt
+                response = st.session_state.client.chat.completions.create(
+                    model=MODEL,
+                    messages=st.session_state.messages
                 )
 
-                reply = response.text or "No response received."
+                reply = response.choices[0].message.content
+
+                if not reply:
+                    reply = "No response received from Groq."
+
                 st.markdown(reply)
 
                 st.session_state.messages.append(
@@ -61,12 +82,14 @@ if prompt := st.chat_input("Type your message..."):
                 )
 
             except Exception as e:
-                st.error(f"Gemini error: {e}")
+                # Remove failed user message from history
+                st.session_state.messages.pop()
 
-# Clear conversation
-if st.button("Clear Chat"):
+                st.error(f"Groq API Error: {e}")
+
+# -----------------------------
+# Clear Chat
+# -----------------------------
+if st.button("🗑️ Clear Chat"):
     st.session_state.messages = []
-    st.session_state.chat = st.session_state.client.chats.create(
-        model=MODEL
-    )
     st.rerun()
